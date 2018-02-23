@@ -8,7 +8,7 @@ def lambda_handler(event, context):
     
     # test loop 
     start_backup = 'yes'
-    start_delete = 'yes'
+    start_delete = 'no'
     
     # Settings
     ec = boto3.client('ec2')
@@ -32,7 +32,7 @@ def lambda_handler(event, context):
                 reg=region['RegionName']
                 ec = boto3.client('ec2', region_name=reg)
             
-                # Get all in-use volumes in all regions  
+                # Get all in-use volumes in all regions
                 result = ec.describe_volumes( Filters=[{'Name': 'status', 'Values': ['in-use']}])
         
                 for volume in result['Volumes']:
@@ -55,7 +55,7 @@ def lambda_handler(event, context):
                     # Add volume name to snapshot for easier identification
                     snapshot.create_tags(Tags=[{'Key': 'Name','Value': volumename}])
     else:
-        print ('Pass')
+        print ('Stop backup')
     
     if start_delete == 'yes' :
         
@@ -68,10 +68,10 @@ def lambda_handler(event, context):
         timeLimit = datetime(d.year,d.month,d.day)
         print ('Deleting any snapshots older than {days} days'.format(days=days))
 
-        # filter
+        # filter tag
         filters = [
             {'Name': 'tag-key', 'Values': ['Name']},
-            {'Name': 'tag-value', 'Values': ['sas-host']},
+            {'Name': 'tag-value', 'Values': ['vm-tag']},
         ]
         
         snapshot_response = ec.describe_snapshots(Filters=filters)
@@ -82,7 +82,7 @@ def lambda_handler(event, context):
                 print ("Deleting snapshot %s" % snap['SnapshotId'])
                 ec.delete_snapshot(SnapshotId=snap['SnapshotId'])
             else:
-                print ('Pass')
+                print ('Stop deletion')
                 
     else:
-        print ('Pass')
+        print ('Stop deletion')
